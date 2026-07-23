@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сєка по Шупарски</title>
+    <!-- Tailwind CSS для стильного і швидкого дизайну -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .table-felt {
+            background: radial-gradient(circle, #065f46 0%, #022c22 100%);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen select-none">
+
+    <!-- ГОЛОВНИЙ КОНТЕЙНЕР -->
+    <div id="app" class="flex-1 max-w-md w-full mx-auto p-4 pb-20 flex flex-col">
+        
+        <!-- ШАПКА -->
+        <header class="flex justify-between items-center mb-6 border-b border-slate-800 pb-3">
+            <h1 class="text-xl font-black tracking-wider text-amber-400">🃏 СЄКА ПО ШУПАРСКИ</h1>
+            <div id="user-balance" class="bg-slate-800 px-3 py-1 rounded-full text-sm font-semibold text-emerald-400 border border-slate-700">
+                0.00 грн
+            </div>
+        </header>
+
+        <!-- ЕКРАНИ (ПЕРЕМИКАННЯ ЧЕРЕЗ JS) -->
+
+        <!-- 1. ГОЛОВНА (ЛОБІ СТОЛІВ) -->
+        <div id="screen-home" class="screen flex-1 flex flex-col gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+                <h2 class="text-lg font-bold mb-2 text-slate-200">Активні хати</h2>
+                <div id="tables-list" class="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                    <p class="text-slate-500 text-sm italic">Зараз немає активних столів. Створи свій!</p>
+                </div>
+            </div>
+
+            <button onclick="switchScreen('screen-create')" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extxl font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95">
+                🎮 Створити гру
+            </button>
+            <button onclick="alert('Оберіть стіл зі списку вище!')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-xl border border-slate-700 transition">
+                🔗 Підключитись до гри
+            </button>
+        </div>
+
+        <!-- 2. ПРОФІЛЬ ТА ФІНАНСИ -->
+        <div id="screen-profile" class="screen hidden flex-1 flex flex-col gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl text-center shadow-lg">
+                <div class="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-3 font-bold border border-amber-500/30" id="user-avatar-letter">👤</div>
+                <h2 class="text-xl font-bold text-white" id="profile-name">Гравець</h2>
+                <p class="text-xs text-slate-400 mt-1">ID: <span id="profile-id">1151179377</span></p>
+                
+                <div class="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-slate-800 text-left">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <p class="text-xs text-slate-400">Виграно ігор</p>
+                        <p class="text-lg font-bold text-amber-400" id="stat-wins">0</p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <p class="text-xs text-slate-400">Загалом ігор</p>
+                        <p class="text-lg font-bold text-white" id="stat-games">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="openModal('deposit-modal')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow transition">
+                    💳 Поповнити
+                </button>
+                <button onclick="openModal('withdraw-modal')" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-3.5 rounded-xl shadow transition">
+                    💸 Вивід (5%)
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. ПРАВИЛА ГРИ -->
+        <div id="screen-rules" class="screen hidden flex-1 flex flex-col gap-3 text-sm text-slate-300">
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl leading-relaxed space-y-3">
+                <h2 class="text-base font-bold text-amber-400">📖 Правила «Сєка по Шупарски»</h2>
+                <p><strong>1. Колода:</strong> 21 карта (4 тузи, 4 короля, 4 дами, 4 валети, 4 десятки та спеціальна карта — 6 треф / чертан).</p>
+                <p><strong>2. Очки:</strong> Тузи = 11, картинки/десятки = 10. Чертан (6 треф) замінює будь-яку карту!</p>
+                <p><strong>3. Комбінації:</strong> Звичайні суми, крюки (31-32 очка), та три тузи (найвища).</p>
+                <p><strong>4. Торги:</strong> Можна грати 'втемну' (наосліп) або 'всвітлу' (дивлячись у карти).</p>
+                <p><strong>5. Варка:</strong> При нічиї гроші залишаються в банку, і грається сварка.</p>
+            </div>
+        </div>
+
+        <!-- 4. СТВОРЕННЯ СТОЛУ -->
+        <div id="screen-create" class="screen hidden flex-1 flex flex-col gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+                <h2 class="text-base font-bold text-amber-400">⚙️ Налаштування столу</h2>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Назва хати</label>
+                    <input type="text" id="table-name-input" value="Шупарський двіж" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Розмір вступу (кон)</label>
+                    <input type="number" id="table-fee-input" value="20" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Кількість пацанів (2-6)</label>
+                    <input type="number" id="table-players-input" value="4" min="2" max="6" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <button onclick="createTable()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl mt-2 transition">
+                    🚀 Збити стіл
+                </button>
+                <button onclick="switchScreen('screen-home')" class="w-full bg-slate-800 text-slate-400 py-2 rounded-xl text-xs">
+                    Назад
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. ІГРОВИЙ СТІЛ (АКТИВНА ГРА) -->
+        <div id="screen-game" class="screen hidden flex-1 flex flex-col gap-3">
+            <div class="table-felt border border-emerald-950 rounded-2xl p-4 flex-1 flex flex-col justify-between shadow-2xl relative min-h-[300px]">
+                <div class="flex justify-between items-center bg-black/40 px-3 py-1.5 rounded-xl backdrop-blur-sm">
+                    <span class="text-xs text-emerald-300">Банк: <b id="game-bank" class="text-amber-400 text-sm">60 грн</b></span>
+                    <span class="text-xs text-emerald-300">Столик: <b id="game-table-title" class="text-white">Шупарський двіж</b></span>
+                </div>
+
+                <div class="text-center my-auto">
+                    <p class="text-xs text-emerald-200 mb-2">Твої карти на руці:</p>
+                    <div id="player-cards" class="flex justify-center gap-2">
+                        <div class="w-14 h-20 bg-white text-slate-950 rounded-lg flex flex-col justify-between p-1.5 font-bold shadow-lg border border-slate-300 text-xs">
+                            <span>A♠</span><span class="text-center text-base">🎴</span><span class="self-end">11</span>
+                        </div>
+                        <div class="w-14 h-20 bg-white text-slate-950 rounded-lg flex flex-col justify-between p-1.5 font-bold shadow-lg border border-slate-300 text-xs">
+                            <span>K♦</span><span class="text-center text-base">🎴</span><span class="self-end">10</span>
+                        </div>
+                        <div class="w-14 h-20 bg-white text-slate-950 rounded-lg flex flex-col justify-between p-1.5 font-bold shadow-lg border border-slate-300 text-xs">
+                            <span>6♣</span><span class="text-center text-base">🃏</span><span class="self-end">Шаха</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- СЛЕНГОВІ КНОПКИ УПРАВЛІННЯ ХОДОМ -->
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <button onclick="gameAction('Подивитися карти')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-2 rounded-xl text-xs shadow transition">👁️ Подивитися карти</button>
+                    <button onclick="gameAction('Темнити')" class="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2.5 px-2 rounded-xl text-xs shadow transition">🕶️ Темнити</button>
+                    <button onclick="gameAction('Дати')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 px-2 rounded-xl text-xs shadow transition">💸 Дати</button>
+                    <button onclick="gameAction('Накинути зверху')" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2.5 px-2 rounded-xl text-xs shadow transition">📈 Накинути зверху</button>
+                    <button onclick="gameAction('Впасти')" class="bg-rose-700 hover:bg-rose-600 text-white font-semibold py-2.5 px-2 rounded-xl text-xs shadow transition">🚪 Впасти</button>
+                    <button onclick="gameAction('Вскритися')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-2 rounded-xl text-xs shadow transition">🤝 Вскритися</button>
+                </div>
+            </div>
+            <button onclick="switchScreen('screen-home')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl text-xs">Вийти з хати</button>
+        </div>
+
+    </div>
+
+    <!-- НИЖНЯ ПАНЕЛЬ НАВІГАЦІЇ -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-900 border-t border-slate-800 grid grid-cols-3 py-2 px-4 text-center z-50">
+        <button onclick="switchScreen('screen-home')" class="nav-btn flex flex-col items-center text-amber-400 text-xs font-semibold" data-target="screen-home">
+            <span class="text-lg">🎲</span> Столи
+        </button>
+        <button onclick="switchScreen('screen-profile')" class="nav-btn flex flex-col items-center text-slate-400 text-xs font-semibold" data-target="screen-profile">
+            <span class="text-lg">👤</span> Профіль
+        </button>
+        <button onclick="switchScreen('screen-rules')" class="nav-btn flex flex-col items-center text-slate-400 text-xs font-semibold" data-target="screen-rules">
+            <span class="text-lg">📖</span> Правила
+        </button>
+    </nav>
+
+    <!-- МОДАЛЬНЕ ВІКНО ПОПОВНЕННЯ -->
+    <div id="deposit-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-xs space-y-3">
+            <h3 class="font-bold text-amber-400 text-base">💳 Поповнення балансу</h3>
+            <p class="text-xs text-slate-300">Перекажи кошти на карту:<br><b class="text-white select-all">4874070019776275</b></p>
+            <input type="number" id="deposit-sum" placeholder="Сума в грн" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm">
+            <button onclick="submitDeposit()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-sm">Надіслати квитанцію</button>
+            <button onclick="closeModal('deposit-modal')" class="w-full text-slate-500 text-xs py-1">Закрити</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЕ ВІКНО ВИВОДУ -->
+    <div id="withdraw-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-xs space-y-3">
+            <h3 class="font-bold text-rose-500 text-base">💸 Вивід коштів (комісія 5%)</h3>
+            <input type="number" id="withdraw-sum" placeholder="Сума" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm">
+            <input type="text" id="withdraw-card" placeholder="Номер твоєї карти" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm">
+            <button onclick="submitWithdraw()" class="w-full bg-rose-600 text-white font-bold py-2.5 rounded-xl text-sm">Створити заявку</button>
+            <button onclick="closeModal('withdraw-modal')" class="w-full text-slate-500 text-xs py-1">Закрити</button>
+        </div>
+    </div>
+
+    <!-- ЛОГІКА СКРИПТІВ -->
+    <script>
+        // Імітація даних користувача
+        let user = {
+            balance: 150.00,
+            wins: 2,
+            games: 5,
+            name: "Пацанчик"
+        };
+
+        let tables = [
+            { id: 1, name: "Хата на куті", fee: 20, players: 2, max: 4 }
+        ];
+
+        function updateUI() {
+            document.getElementById('user-balance').innerText = `${user.balance.toFixed(2)} грн`;
+            document.getElementById('profile-name').innerText = user.name;
+            document.getElementById('stat-wins').innerText = user.wins;
+            document.getElementById('stat-games').innerText = user.games;
+            renderTables();
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-amber-400');
+                btn.classList.add('text-slate-400');
+                if(btn.dataset.target === screenId) {
+                    btn.classList.add('text-amber-400');
+                    btn.classList.remove('text-slate-400');
+                }
+            });
+        }
+
+        function renderTables() {
+            let container = document.getElementById('tables-list');
+            if(tables.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-sm italic">Зараз немає активних столів.</p>`;
+                return;
+            }
+            container.innerHTML = tables.map(t => `
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold text-white text-sm">${t.name}</p>
+                        <p class="text-xs text-slate-400">Кон: ${t.fee} грн | Гравців: ${t.players}/${t.max}</p>
+                    </div>
+                    <button onclick="joinTable(${t.id})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs">Зайти</button>
+                </div>
+            `).join('');
+        }
+
+        function createTable() {
+            let name = document.getElementById('table-name-input').value;
+            let fee = parseInt(document.getElementById('table-fee-input').value) || 10;
+            let max = parseInt(document.getElementById('table-players-input').value) || 4;
+
+            tables.push({ id: tables.length + 1, name, fee, players: 1, max });
+            switchScreen('screen-home');
+            updateUI();
+        }
+
+        function joinTable(id) {
+            let t = tables.find(x => x.id === id);
+            if(t) {
+                document.getElementById('game-table-title').innerText = t.name;
+                document.getElementById('game-bank').innerText = `${t.fee * t.players} грн`;
+                switchScreen('screen-game');
+            }
+        }
+
+        function gameAction(actionName) {
+            alert(`Ти зробив хід: «${actionName}»!`);
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+        }
+
+        function submitDeposit() {
+            let sum = parseFloat(document.getElementById('deposit-sum').value);
+            if(sum > 0) {
+                user.balance += sum;
+                updateUI();
+                closeModal('deposit-modal');
+                alert(`Квитанція на ${sum} грн надіслана на модерацію!`);
+            }
+        }
+
+        function submitWithdraw() {
+            let sum = parseFloat(document.getElementById('withdraw-sum').value);
+            if(sum > 0 && sum <= user.balance) {
+                user.balance -= sum;
+                updateUI();
+                closeModal('withdraw-modal');
+                alert(`Заявка на вивід ${sum} грн створена!`);
+            } else {
+                alert('Недостатньо коштів або невірна сума.');
+            }
+        }
+
+        // Ініціалізація
+        updateUI();
+    </script>
+</body>
+</html>
